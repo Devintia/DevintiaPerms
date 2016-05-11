@@ -16,16 +16,18 @@ import java.util.Map;
  */
 public class PermissionContainer {
 
-    @Getter
-    private Map<String, Boolean> permissions = new HashMap<>();
+    @Getter private Map<String, Boolean> permissions = new HashMap<>();
+    private final PermissionGroup group;
 
     public PermissionContainer( PermissionGroup startGroup ) {
+        this.group = startGroup;
+
         // Sort all inheritance
         List<PermissionGroup> groups = new ArrayList<>();
         groups.add( startGroup );
 
         // Check for inheritance
-        if ( startGroup.getInheritance() != null && startGroup.getInheritance().size() > 0 ) {
+        if ( startGroup.getInheritance().size() > 0 ) {
             resolveInheritance( startGroup, groups );
         }
 
@@ -52,10 +54,19 @@ public class PermissionContainer {
             groups.add( permissionGroup );
 
             // Check if group has inheritance
-            if ( permissionGroup.getInheritance() != null && permissionGroup.getInheritance().size() > 0 ) {
+            if ( permissionGroup.getInheritance().size() > 0 ) {
                 resolveInheritance( permissionGroup, groups );
             }
         }
+    }
+
+    public String getMetadata( String key ) {
+        return this.group.getMetadata().get( key );
+    }
+
+    public boolean hasPermission( String permission ) {
+        Boolean perm = permissions.get( permission );
+        return perm == null ? false : perm;
     }
 
 }

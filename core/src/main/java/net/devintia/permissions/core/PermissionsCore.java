@@ -34,6 +34,7 @@ public class PermissionsCore {
     private final PermissionUserRepository userRepository;
     private final LoadingCache<UUID, PermissionContainer> cache = CacheBuilder.newBuilder()
             .expireAfterAccess( 10, TimeUnit.MINUTES )
+            .refreshAfterWrite( 5, TimeUnit.MINUTES )
             .build( new CacheLoader<UUID, PermissionContainer>() {
                 @Override
                 public PermissionContainer load( UUID uuid ) throws Exception {
@@ -47,7 +48,7 @@ public class PermissionsCore {
                             return new PermissionContainer( defaultGroup );
                         }
                     } else {
-                        PermissionGroup permissionGroup = groupRepository.getGroup( permissionUser.getGroup() );
+                        PermissionGroup permissionGroup = permissionUser.getGroup();
                         if ( permissionGroup == null ) {
                             permissionGroup = groupRepository.getGroup( config.getDefaultGroup() );
                             if ( permissionGroup == null ) {
@@ -86,6 +87,8 @@ public class PermissionsCore {
         this.userRepository = new PermissionUserRepository( this.datastore );
     }
 
+    // --------------------------- Permission data container
+
     public PermissionContainer getPermissionContainer( UUID playerUUID ) {
         try {
             return this.cache.get( playerUUID );
@@ -94,9 +97,63 @@ public class PermissionsCore {
         }
     }
 
+    // --------------------------- Refresh
+
+    public void refresh( UUID playerUUID ) {
+        this.cache.refresh( playerUUID );
+    }
+
+    // --------------------------- Metadata
+
+    public void setMetadata( String group, String metaKey, String metaValue ) {
+        PermissionGroup permissionGroup = this.groupRepository.getGroup( group );
+        if ( permissionGroup != null ) {
+            permissionGroup.getMetadata().put( metaKey, metaValue );
+            this.datastore.save( permissionGroup );
+        }
+    }
+
+    // --------------------------- Groups
+
+    public boolean assignGroup( UUID playerUUID, String group ) {
+        PermissionGroup permissionGroup = ( group == null ) ? null : this.groupRepository.getGroup( group );
+        PermissionUser permissionUser = this.userRepository.getUser( playerUUID );
+        if ( permissionUser == null ) {
+            permissionUser = new PermissionUser();
+            permissionUser.setUuid( playerUUID );
+        }
+
+        if ( group != null && permissionGroup == null ) {
+            return false;
+        }
+
+        permissionUser.setGroup(permissionGroup);
+        this.datastore.save(permissionUser);
+        return true;
+    }
+
+    // --------------------------- Permissions
+
+    public void removePermission( String group, String permission ) {
+        PermissionGroup permissionGroup = this.groupRepository.getGroup( group );
+        if ( permissionGroup != null ) {
+            permissionGroup.getPermissions().remove( permission );
+            this.datastore.save( permissionGroup );
+        }
+    }
+
+    public void setPermission( String group, String permission, boolean value ) {
+        PermissionGroup permissionGroup = this.groupRepository.getGroup( group );
+        if ( permissionGroup != null ) {
+            permissionGroup.getPermissions().put( permission, value );
+            this.datastore.save( permissionGroup );
+        }
+    }
+
     public static void main( String[] args ) {
         try {
-            new PermissionsCore( new File( "config.yml" ) );
+            PermissionsCore permissionsCore = new PermissionsCore( new File( "config.yml" ) );
+            permissionsCore.getPermissionContainer( UUID.randomUUID() );
         } catch ( Exception e ) {
             e.printStackTrace();
         }

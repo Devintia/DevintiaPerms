@@ -1,0 +1,4 @@
+name: DevintiaPerms
+version: 1.0.0
+author: DevinitaTeam
+main: net.devintia.permissions.bukkit.PermissionsPlugin

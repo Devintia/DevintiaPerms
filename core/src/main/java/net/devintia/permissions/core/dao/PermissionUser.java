@@ -5,6 +5,7 @@ import lombok.Setter;
 import org.bson.types.ObjectId;
 import org.mongodb.morphia.annotations.Entity;
 import org.mongodb.morphia.annotations.Id;
+import org.mongodb.morphia.annotations.Reference;
 
 import java.util.UUID;
 
@@ -18,6 +19,6 @@ public class PermissionUser {
     private ObjectId id;
     @Getter @Setter
     private UUID uuid;
-    @Getter @Setter
-    private String group;
+    @Reference @Getter @Setter
+    private PermissionGroup group;
 }
